@@ -107,7 +107,7 @@ class SolrMuninGraph:
         self.params = params
 
     def _cacheConfig(self, cacheType):
-        return """graph_title Solr %s
+        return """graph_title Solr %s %s
 graph_args -l 0
 graph_category search
 graph_vlabel size
@@ -120,7 +120,7 @@ hits.draw STACK
 inserts.label Inserts
 inserts.draw STACK
 evictions.label Evictions
-evictions.draw STACK""" % cacheType
+evictions.draw STACK""" % (self.solrmbean.getCore(), cacheType)
 
     def _cacheFetch(self, cacheName):
         results = []
