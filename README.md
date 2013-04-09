@@ -10,7 +10,7 @@ The plugin depends on python-lxml:
 
 Copy the plugin file to your munin plugins folder (ex. /usr/share/munin/plugins):
 
-Add the following lines to the munin-node file, usually found in /etc/munin/plugin-conf.d/munin-node, adding one qpshandler for eache handler you need to monitor:
+Add the following lines to the munin-node file, usually found in /etc/munin/plugin-conf.d/munin-node, adding one qpshandler for each handler you need to monitor:
 
     [solr_*]
         host_port solrhost:8080 
