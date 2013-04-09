@@ -11,10 +11,10 @@ Setup:
 After copying the plugin file to your munin plugins folder (ex. /usr/share/munin/plugins):
 
 Add to munin-node your solr configuration and handlers:
-> [solr_*]
 
->     host_port solrhost:8080 
->     qpshandler_select /select
+    [solr_*]
+        host_port solrhost:8080 
+        qpshandler_select /select
 
 
 Enabling numdoc check on core_1:
