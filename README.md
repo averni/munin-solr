@@ -11,7 +11,9 @@ After copying the plugin file to your munin plugins folder (es. /usr/share/munin
 
 Add to munin-node your solr configuration and handlers:
 > [solr_*]
+
 >     host_port solrhost:8080 
+
 >     qpshandler_select /select
 
 
