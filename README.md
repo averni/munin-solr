@@ -1,11 +1,11 @@
-munin-solr
+# Munin-solr
 -------------
 
 Munin plugin for monitoring a multicore solr installation via mbean.
 The plugin depends on python-lxml:
 > sudo apt-get install python-lxml
 
-Setup:
+### Setup:
 ===
 
 After copying the plugin file to your munin plugins folder (ex. /usr/share/munin/plugins):
