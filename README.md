@@ -13,7 +13,6 @@ Add to munin-node your solr configuration and handlers:
 > [solr_*]
 
 >     host_port solrhost:8080 
-
 >     qpshandler_select /select
 
 
