@@ -26,6 +26,7 @@ Enabling qps check on the select handler for core_1
 
     ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
 
+
 ### Thanks:
 ===
 
