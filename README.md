@@ -17,11 +17,11 @@ Add to munin-node your solr configuration and handlers:
 >     qpshandler_select /select
 
 
-enables numdoc check on core_1:
+Enabling numdoc check on core_1:
 > ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
 
 
-enables qps check on the select handler for core_1
+Enabling qps check on the select handler for core_1
 > ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
 
 
