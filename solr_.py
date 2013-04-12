@@ -295,8 +295,8 @@ class SolrMuninGraph:
         results = []
         for c in cores:
             mbean = self._getMBean(c)
+            results.append('multigraph {core}_requesttimes'.format(core=c))
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
-                results.append('multigraph {core}_requesttimes'.format(core=c))
                 results.append('%s_%s.value %s' % (k.lower(), c, time))
         return '\n'.join(results)
 
