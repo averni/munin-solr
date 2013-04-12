@@ -200,15 +200,15 @@ graph_title Solr {core} {handler} Time per request"
 graph_args -l 0
 graph_vlabel seconds
 graph_category solr
-avgtimeperrequest_{core}.label {core} Avg time per request
-avgtimeperrequest_{core}.type GAUGE
-avgtimeperrequest_{core}.graph yes
-75thpcrequesttime_{core}.label {core} 75th perc
-75thpcrequesttime_{core}.type GAUGE
-75thpcrequesttime_{core}.graph yes
-99thpcrequesttime_{core}.label {core} 99th perc
-99thpcrequesttime_{core}.type GAUGE
-99thpcrequesttime_{core}.graph yes
+savgtimeperrequest_{core}.label {core} Avg time per request
+savgtimeperrequest_{core}.type GAUGE
+savgtimeperrequest_{core}.graph yes
+s75thpcrequesttime_{core}.label {core} 75th perc
+s75thpcrequesttime_{core}.type GAUGE
+s75thpcrequesttime_{core}.graph yes
+s99thpcrequesttime_{core}.label {core} 99th perc
+s99thpcrequesttime_{core}.type GAUGE
+s99thpcrequesttime_{core}.graph yes
 
 """
 
@@ -297,7 +297,7 @@ class SolrMuninGraph:
             mbean = self._getMBean(c)
             results.append('multigraph {core}_requesttimes'.format(core=c))
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
-                results.append('%s_%s.value %s' % (k.lower(), c, time))
+                results.append('s%s_%s.value %s' % (k.lower(), c, time))
         return '\n'.join(results)
 
     def numdocsConfig(self):
