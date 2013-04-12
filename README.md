@@ -18,8 +18,8 @@ Add the following lines to the munin-node file, usually found in /etc/munin/plug
 
     [solr_*]
         host_port solrhost:8080 
-        qpshandler_select /select
         availableram: 3221225472
+        qpshandler_select /select
 
 
 To enable numdoc check on core_1:
@@ -35,14 +35,14 @@ To enable qps check on the select handler for core_1
 ### Checks available:
 ===
 
-numdocs
-qps
-indexsize
-requesttimes
-documentcache
-fieldvaluecache
-filtercache
-queryresultcache
+numdocs  
+qps  
+indexsize  
+requesttimes  
+documentcache  
+fieldvaluecache  
+filtercache  
+queryresultcache  
 
 
 ### Credits:
