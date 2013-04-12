@@ -7,7 +7,7 @@ It calls:
 
 > http://localhost:8080/solr/core_1/admin/mbeans?stats=true
 
-to retrieve cores and cores data.
+to retrieve cores and data.
 
 ### Setup:
 ===
