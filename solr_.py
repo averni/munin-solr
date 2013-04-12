@@ -185,6 +185,7 @@ QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second"
 graph_args -l 0
 graph_vlabel request / second
 graph_category solr
+qps_total.label Request count
 qps_total.type LINE2
 qps_total.cdef {cores_qps_cdefs}
 qps_total.graph yes
@@ -273,7 +274,7 @@ class SolrMuninGraph:
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handler'], 
             core=self.params['core'], 
-            cores_qps_cdefs='%s,%s' % (','.join(cores),','.join(['+']*len(cores)))
+            cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*len(cores)))
         )
 
     def qps(self):
