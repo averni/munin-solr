@@ -5,9 +5,11 @@ Munin plugin for monitoring a multicore solr 4.* installation via mbean.
 It calls:
 > http://localhost:8080/solr/admin/cores?action=STATUS&wt=json
 
+and
+
 > http://localhost:8080/solr/core_1/admin/mbeans?stats=true
 
-to retrieve cores and data.
+for each core to retrieve cores and data.
 
 ### Setup:
 ===
