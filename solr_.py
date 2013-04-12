@@ -166,7 +166,7 @@ class SolrCoreMBean:
         return self._readCache('queryResultCache')
 
 # Graph Templates
-CACHE_GRAPH_TPL = """graph_title Solr {core} {cacheType}
+OLD_CACHE_GRAPH_TPL = """graph_title Solr {core} {cacheType}
 graph_args -l 0
 graph_category solr
 graph_vlabel lookups
@@ -178,6 +178,38 @@ size.label Size
 size.draw LINE2
 lookups.label Lookups
 lookups.draw LINE1
+evictions.label Evictions
+evictions.draw LINE2"""
+
+CACHE_GRAPH_TPL = """multigraph solr_{core}_{cacheType}_hit_rates
+graph_category solr
+graph_title Solr {core} {cacheName} Hit rates
+graph_order lookups hits inserts hitspass
+graph_scale no
+graph_vlabel %
+graph_args -u 100 --rigid
+lookups.label Cache lookups
+lookups.graph yes
+lookups.min 0
+lookups.type DERIVE
+inserts.label Cache misses
+inserts.min 0
+inserts.draw STACK
+inserts.cdef inserts,lookups,/,100,*
+inserts.type DERIVE
+hits.label Cache hits
+hits.min 0
+hits.draw AREA
+hits.cdef hits,lookups,/,100,*
+hits.type DERIVE
+
+multigraph solr_{core}_{cacheType}_size
+graph_title Solr %s %s
+graph_args -l 0
+graph_category solr
+graph_vlabel lookups
+size.label Size
+size.draw LINE2
 evictions.label Evictions
 evictions.draw LINE2"""
 
@@ -248,16 +280,25 @@ class SolrMuninGraph:
     def _getMBean(self, core):
         return SolrCoreMBean(self.hostport, core)
 
-    def _cacheConfig(self, cacheType):
-        return CACHE_GRAPH_TPL.format(core=self.params['core'], cacheType=cacheType)
+    def _cacheConfig(self, cacheType, cacheName):
+        return CACHE_GRAPH_TPL.format(core=self.params['core'], cacheType=cacheType, cacheName=cacheName)
 
-    def _cacheFetch(self, cacheName, fields = None):
-        fields = fields or  ['size', 'lookups', 'hits', 'inserts', 'evictions']
+    def _cacheFetch(self, cacheType, fields = None):
+        fields = fields or ['size', 'lookups', 'hits', 'inserts', 'evictions']
+        hits_fields = ['lookups', 'hits', 'inserts']
+        size_fields = ['lookups', 'hits', 'inserts']
         results = []
         solrmbean = self._getMBean(self.params['core'])
-        data = getattr(solrmbean, cacheName)()
-        for label in fields:
+        data = getattr(solrmbean, cacheType)()
+        results.append('multigraph solr_{core}_{cacheType}_hit_rates'.format(core=self.params['core'], cacheType=cacheType))
+        for label in hits_fields:
             results.append("%s.value %s" % (label, data[label]))
+
+        results.append('multigraph solr_{core}_{cacheType}_size'.format(core=self.params['core'], cacheType=cacheType))
+        for label in size_fields:
+            results.append("%s.value %s" % (label, data[label]))
+
+
         return "\n".join(results)
 
     def config(self, mtype):
@@ -311,10 +352,11 @@ class SolrMuninGraph:
         return '\n'.join(results)
 
     def numdocsConfig(self):
-        return NUMDOCS_GRAPH_TPL % self.solrmbean.getCore()
+        return NUMDOCS_GRAPH_TPL % self.params['core']
 
     def numdocs(self):
-        return 'docs.value %s' % self.solrmbean.numdocs(**self.params['params'])
+        mbean = self._getMBean(self.params['core'])
+        return 'docs.value %s' % mbean.numdocs(**self.params['params'])
 
     def indexsizeConfig(self):
         cores = self._getCores()
@@ -329,25 +371,25 @@ class SolrMuninGraph:
         return "\n".join(results)
 
     def documentcacheConfig(self):
-        return self._cacheConfig('Document Cache')
+        return self._cacheConfig('documentcache', 'Document Cache')
 
     def documentcache(self):
         return self._cacheFetch('documentcache')
 
     def filtercacheConfig(self):
-        return self._cacheConfig('Filter Cache')
+        return self._cacheConfig('filtercache', 'Filter Cache')
 
     def filtercache(self):
         return self._cacheFetch('filtercache')
 
     def fieldvaluecacheConfig(self):
-        return self._cacheConfig('Field Value Cache')
+        return self._cacheConfig('fieldvaluecache', 'Field Value Cache')
 
     def fieldvaluecache(self):
-        return self._cacheFetch(sys._getframe().f_code.co_name)
+        return self._cacheFetch('fieldvaluecache')
 
     def queryresultcacheConfig(self):
-        return self._cacheConfig('Query Cache')
+        return self._cacheConfig('queryresultcache', 'Query Cache')
 
     def queryresultcache(self):
         return self._cacheFetch('queryresultcache')
