@@ -7,7 +7,7 @@ It calls:
 
 and
 
-> http://localhost:8080/solr/<corename>/admin/mbeans?stats=true&wt=json
+> http://localhost:8080/solr/corename/admin/mbeans?stats=true&wt=json
 
 for each core to retrieve cores and data.
 
