@@ -27,9 +27,11 @@ To enable numdoc check on core_1:
     ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
 
 
-To enable qps check on the select handler for core_1
+To enable qps check on the select handler for core_1 you have to define an alias for every handler in the munin-node file as for the example and then 
 
     ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
+    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_select
+
 
 
 ### Checks available:
