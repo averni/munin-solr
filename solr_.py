@@ -185,29 +185,39 @@ QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second"
 graph_args -l 0
 graph_vlabel request / second
 graph_category solr
+{cores_qps_graphs}"""
+
+QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
+qps_{core}.type LINESTACK1
+qps_{core}.graph yes"""
+
+OLD_QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second"
+graph_args -l 0
+graph_vlabel request / second
+graph_category solr
 qps_total.label Request count
 qps_total.type LINE2
 qps_total.cdef {cores_qps_cdefs}
 qps_total.graph yes
 {cores_qps_graphs}"""
 
-QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
-qps_{core}.type GAUGE
+OLD_QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
+qps_{core}.type gauge
 qps_{core}.graph yes"""
 
 REQUESTTIMES_GRAPH_TPL = """multigraph {core}_requesttimes
-graph_title Solr {core} {handler} Time per request"
+graph_title Solr {core} {handler} Time per request
 graph_args -l 0
-graph_vlabel seconds
+graph_vlabel millis
 graph_category solr
 savgtimeperrequest_{core}.label {core} Avg time per request
-savgtimeperrequest_{core}.type GAUGE
+savgtimeperrequest_{core}.type gauge
 savgtimeperrequest_{core}.graph yes
 s75thpcrequesttime_{core}.label {core} 75th perc
-s75thpcrequesttime_{core}.type GAUGE
+s75thpcrequesttime_{core}.type gauge
 s75thpcrequesttime_{core}.graph yes
 s99thpcrequesttime_{core}.label {core} 99th perc
-s99thpcrequesttime_{core}.type GAUGE
+s99thpcrequesttime_{core}.type gauge
 s99thpcrequesttime_{core}.graph yes
 
 """
