@@ -1,29 +1,49 @@
 #!/usr/bin/env python
+#
+# Copyright (c) 2013, Antonio Verni, me.verni@gmail.com
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+#
+# Solr 4.* munin graph plugin
+# Plugins configuration parameters:
+#
+# [solr_*]
+#    host_port <host:port>
+#    qpshandler_<handlerlabel> <handlerpath>
+#    availableram <ramsize in bytes>
+#
+#    ex:
+#        host_port solrhost:8080 
+#        qpshandler_select /select
+#        availableram 3221225472
+#
+# Install plugins:
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_requesttimes_select
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
+#
+
 
 import sys
 import os
 import httplib
 import json
-from pprint import pprint as pp
-# http://localhost:8983/solr/core_1/admin/mbeans?stats=true
-
-"""
-
-Plugins configuration parameters:
-
-[solr_*]
-    host_port <host:port>
-    qpshandler_<handlerlabel> <handlerpath>
-
-    ex:
-        host_port solrhost:8080 
-        qpshandler_select /select
-
-Install plugins:
-    apt-get install python-lxml
-    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
-    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
-"""
 
 def parse_params():
     plugname = os.path.basename(sys.argv[0]).split('_', 2)[1:]
@@ -46,6 +66,9 @@ def parse_params():
     elif plugname[0] ==  'indexsize':
         params['params']['core'] = params['core']
     return params
+
+#############################################################################
+# Datasources
 
 class CheckException(Exception):
     pass
@@ -165,7 +188,9 @@ class SolrCoreMBean:
     def queryresultcache(self):
         return self._readCache('queryResultCache')
 
+#############################################################################
 # Graph Templates
+
 OLD_CACHE_GRAPH_TPL = """graph_title Solr {core} {cacheType}
 graph_args -l 0
 graph_category solr
@@ -272,6 +297,9 @@ graph_order {cores}
 
 INDEXSIZECORE_GRAPH_TPL = """{core}.label {core}
 {core}.draw STACK""" 
+
+#############################################################################
+# Graph managment
 
 class SolrMuninGraph:
     def __init__(self, hostport, solrmbean):
