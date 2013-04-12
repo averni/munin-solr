@@ -184,12 +184,12 @@ evictions.draw LINE2"""
 CACHE_GRAPH_TPL = """multigraph solr_{core}_{cacheType}_hit_rates
 graph_category solr
 graph_title Solr {core} {cacheName} Hit rates
-graph_order lookups hits inserts hitspass
+graph_order lookups hits inserts
 graph_scale no
-graph_vlabel %
+graph_vlabel Hit Rate
 graph_args -u 100 --rigid
 lookups.label Cache lookups
-lookups.graph yes
+lookups.graph no
 lookups.min 0
 lookups.type DERIVE
 inserts.label Cache misses
@@ -204,14 +204,16 @@ hits.cdef hits,lookups,/,100,*
 hits.type DERIVE
 
 multigraph solr_{core}_{cacheType}_size
-graph_title Solr %s %s
+graph_title Solr {core} {cacheName} Size
 graph_args -l 0
 graph_category solr
-graph_vlabel lookups
+graph_vlabel Size
 size.label Size
 size.draw LINE2
 evictions.label Evictions
-evictions.draw LINE2"""
+evictions.draw LINE2
+
+"""
 
 QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second"
 graph_args -l 0
@@ -286,19 +288,16 @@ class SolrMuninGraph:
     def _cacheFetch(self, cacheType, fields = None):
         fields = fields or ['size', 'lookups', 'hits', 'inserts', 'evictions']
         hits_fields = ['lookups', 'hits', 'inserts']
-        size_fields = ['lookups', 'hits', 'inserts']
+        size_fields = ['size', 'evictions']
         results = []
         solrmbean = self._getMBean(self.params['core'])
         data = getattr(solrmbean, cacheType)()
         results.append('multigraph solr_{core}_{cacheType}_hit_rates'.format(core=self.params['core'], cacheType=cacheType))
         for label in hits_fields:
             results.append("%s.value %s" % (label, data[label]))
-
         results.append('multigraph solr_{core}_{cacheType}_size'.format(core=self.params['core'], cacheType=cacheType))
         for label in size_fields:
             results.append("%s.value %s" % (label, data[label]))
-
-
         return "\n".join(results)
 
     def config(self, mtype):
