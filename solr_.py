@@ -274,7 +274,7 @@ class SolrMuninGraph:
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handler'], 
             core=self.params['core'], 
-            cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*len(cores)))
+            cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*(len(cores)-1)))
         )
 
     def qps(self):
@@ -296,6 +296,7 @@ class SolrMuninGraph:
         for c in cores:
             mbean = self._getMBean(c)
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
+                results.append('multigraph {core}_requesttimes'.format(core=c))
                 results.append('%s_%s.value %s' % (k.lower(), c, time))
         return '\n'.join(results)
 
