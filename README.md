@@ -6,7 +6,8 @@ It calls:
 > http://localhost:8080/solr/admin/cores?action=STATUS&wt=json
 
 > http://localhost:8080/solr/core_1/admin/mbeans?stats=true
-to retrieve cores and cores data
+
+to retrieve cores and cores data.
 
 ### Setup:
 ===
