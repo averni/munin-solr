@@ -199,21 +199,6 @@ class SolrCoreMBean:
 #############################################################################
 # Graph Templates
 
-OLD_CACHE_GRAPH_TPL = """graph_title Solr {core} {cacheType}
-graph_args -l 0
-graph_category solr
-graph_vlabel lookups
-hits.label Hits
-hits.draw AREA
-inserts.label Inserts
-inserts.draw STACK
-size.label Size
-size.draw LINE2
-lookups.label Lookups
-lookups.draw LINE1
-evictions.label Evictions
-evictions.draw LINE2"""
-
 CACHE_GRAPH_TPL = """multigraph solr_{core}_{cacheType}_hit_rates
 graph_category solr
 graph_title Solr {core} {cacheName} Hit rates
@@ -248,28 +233,18 @@ evictions.draw LINE2
 
 """
 
-QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second"
-graph_args -l 0
+QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second
+graph_args --base 1000 -r --lower-limit 0
+graph_scale no
 graph_vlabel request / second
 graph_category solr
+graph_period second
+graph_order {gorder}
 {cores_qps_graphs}"""
 
 QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
-qps_{core}.type LINESTACK1
-qps_{core}.graph yes"""
-
-OLD_QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second"
-graph_args -l 0
-graph_vlabel request / second
-graph_category solr
-qps_total.label Request count
-qps_total.type LINE2
-qps_total.cdef {cores_qps_cdefs}
-qps_total.graph yes
-{cores_qps_graphs}"""
-
-OLD_QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
-qps_{core}.type gauge
+qps_{core}.draw {gtype}
+qps_{core}.type GAUGE
 qps_{core}.graph yes"""
 
 REQUESTTIMES_GRAPH_TPL = """multigraph {core}_requesttimes
@@ -278,13 +253,13 @@ graph_args -l 0
 graph_vlabel millis
 graph_category solr
 savgtimeperrequest_{core}.label {core} Avg time per request
-savgtimeperrequest_{core}.type gauge
+savgtimeperrequest_{core}.type GAUGE
 savgtimeperrequest_{core}.graph yes
 s75thpcrequesttime_{core}.label {core} 75th perc
-s75thpcrequesttime_{core}.type gauge
+s75thpcrequesttime_{core}.type GAUGE
 s75thpcrequesttime_{core}.graph yes
 s99thpcrequesttime_{core}.label {core} 99th perc
-s99thpcrequesttime_{core}.type gauge
+s99thpcrequesttime_{core}.type GAUGE
 s99thpcrequesttime_{core}.graph yes
 
 """
@@ -355,12 +330,13 @@ class SolrMuninGraph:
 
     def qpsConfig(self):
         cores = self._getCores()
-        graph = [QPSCORE_GRAPH_TPL.format(core=c) for c in cores ]
+        graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='AREA' if pos == 0 else 'STACK') for pos,c in enumerate(cores) ]
         return QPSMAIN_GRAPH_TPL.format(
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handler'], 
             core=self.params['core'], 
-            cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*(len(cores)-1)))
+            cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*(len(cores)-1))), 
+            gorder=','.join(cores)
         )
 
     def qps(self):
