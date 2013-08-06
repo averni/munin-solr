@@ -150,7 +150,7 @@ class SolrCoreMBean:
     def _readInt(self, path):
         return self._read(path, int)
 
-    def readFloat(self, path):
+    def _readFloat(self, path):
         return self._read(path, float)
 
     def _read(self, path, convert = None):
