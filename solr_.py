@@ -57,7 +57,7 @@ def parse_params():
         data = params['core'].rsplit('_', 1)
         handler = data.pop()
         params['params'] = {
-                'handler': os.environ.get('qpshandler_%s' % handler, '/select')
+                'handler': os.environ.get('qpshandler_%s' % handler, 'standard')
         }
         if not data:
             params['core'] = ''
@@ -75,7 +75,7 @@ class CheckException(Exception):
 
 class JSONReader:
     @classmethod
-    def readValue(cls, struct, path):
+    def readValue(cls, struct, path, convert = None):
         if not path[0] in struct:
             return -1
         obj = struct[path[0]]
@@ -83,6 +83,8 @@ class JSONReader:
             return -1
         for k in path[1:]:
             obj = obj[k]
+        if convert:
+            return convert(obj)
         return obj
 
 class SolrCoresAdmin:
@@ -145,17 +147,23 @@ class SolrCoreMBean:
             else:
                 key = el
 
-    def _read(self, path):
+    def _readInt(self, path):
+        return self._read(path, int)
+
+    def readFloat(self, path):
+        return self._read(path, float)
+
+    def _read(self, path, convert = None):
         if self.data is None:
             self._fetch()
-        return JSONReader.readValue(self.data, path)
+        return JSONReader.readValue(self.data, path, convert)
 
     def _readCache(self, cache):
         result = {}
-        for key in ['lookups', 'hits', 'inserts', 'evictions', 'hitratio']:
+        for key, ftype in [('lookups', int), ('hits', int), ('inserts', int), ('evictions', int), ('hitratio', float)]:
             path = ['solr-mbeans', 'CACHE', cache, 'stats', 'cumulative_%s' % key]
-            result[key] = self._read(path)
-        result['size'] = self._read(['solr-mbeans', 'CACHE', cache, 'stats', 'size'])
+            result[key] = self._read(path, ftype)
+        result['size'] = self._readInt(['solr-mbeans', 'CACHE', cache, 'stats', 'size'])
         return result
 
     def getCore(self):
@@ -163,18 +171,18 @@ class SolrCoreMBean:
 
     def qps(self, handler):
         path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'avgRequestsPerSecond']
-        return self._read(path)
+        return self._readFloat(path)
 
     def requesttimes(self, handler):
         times = {}
         path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats']
         for perc in ['avgTimePerRequest', '75thPcRequestTime', '99thPcRequestTime']:
-            times[perc] = self._read(path + [perc])
+            times[perc] = self._read(path + [perc], float)
         return times
 
     def numdocs(self):
         path = ['solr-mbeans', 'CORE', 'searcher', 'stats', 'numDocs']
-        return self._read(path)
+        return self._readInt(path)
 
     def documentcache(self):
         return self._readCache('documentCache')
@@ -322,10 +330,10 @@ class SolrMuninGraph:
         data = getattr(solrmbean, cacheType)()
         results.append('multigraph solr_{core}_{cacheType}_hit_rates'.format(core=self.params['core'], cacheType=cacheType))
         for label in hits_fields:
-            results.append("%s.value %s" % (label, data[label]))
+            results.append("%s.value %.8f" % (label, data[label]))
         results.append('multigraph solr_{core}_{cacheType}_size'.format(core=self.params['core'], cacheType=cacheType))
         for label in size_fields:
-            results.append("%s.value %s" % (label, data[label]))
+            results.append("%s.value %d" % (label, data[label]))
         return "\n".join(results)
 
     def config(self, mtype):
@@ -360,7 +368,7 @@ class SolrMuninGraph:
         cores = self._getCores()
         for c in cores:
             mbean = self._getMBean(c)
-            results.append('qps_%s.value %s' % (c, mbean.qps(self.params['params']['handler'])))
+            results.append('qps_%s.value %.5f' % (c, mbean.qps(self.params['params']['handler'])))
         return '\n'.join(results)
 
     def requesttimesConfig(self):
@@ -375,7 +383,7 @@ class SolrMuninGraph:
             mbean = self._getMBean(c)
             results.append('multigraph {core}_requesttimes'.format(core=c))
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
-                results.append('s%s_%s.value %s' % (k.lower(), c, time))
+                results.append('s%s_%s.value %.5f' % (k.lower(), c, time))
         return '\n'.join(results)
 
     def numdocsConfig(self):
@@ -383,7 +391,7 @@ class SolrMuninGraph:
 
     def numdocs(self):
         mbean = self._getMBean(self.params['core'])
-        return 'docs.value %s' % mbean.numdocs(**self.params['params'])
+        return 'docs.value %d' % mbean.numdocs(**self.params['params'])
 
     def indexsizeConfig(self):
         cores = self._getCores()
@@ -394,7 +402,7 @@ class SolrMuninGraph:
     def indexsize(self):
         results = []
         for c, size in self.solrcoresadmin.indexsize(**self.params['params']).items():
-            results.append("%s.value %s" % (c, size))
+            results.append("%s.value %d" % (c, size))
         return "\n".join(results)
 
     def documentcacheConfig(self):
