@@ -42,8 +42,8 @@ To enable qps and requesttimes check on a handler you have to define an alias fo
 
 numdocs  
 qps  
-indexsize
-memory
+indexsize  
+memory  
 requesttimes  
 documentcache  
 fieldvaluecache  
