@@ -181,6 +181,10 @@ class SolrCoreMBean:
     def getCore(self):
         return self.core
 
+    def requestcount(self, handler):
+        path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'requests']
+        return self._readInt(path)
+
     def qps(self, handler):
         path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'avgRequestsPerSecond']
         return self._readFloat(path)
@@ -263,7 +267,8 @@ graph_order {gorder}
 
 QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
 qps_{core}.draw {gtype}
-qps_{core}.type GAUGE
+qps_{core}.type DERIVE
+qps_{core}.min 0
 qps_{core}.graph yes"""
 
 REQUESTTIMES_GRAPH_TPL = """multigraph {core}_requesttimes
@@ -377,7 +382,7 @@ class SolrMuninGraph:
         cores = self._getCores()
         for c in cores:
             mbean = self._getMBean(c)
-            results.append('qps_%s.value %.5f' % (c, mbean.qps(self.params['params']['handler'])))
+            results.append('qps_%s.value %d' % (c, mbean.requestcount(self.params['params']['handler'])))
         return '\n'.join(results)
 
     def requesttimesConfig(self):
