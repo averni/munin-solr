@@ -26,17 +26,17 @@
 # [solr_*]
 #    host_port <host:port>
 #    qpshandler_<handlerlabel> <handlerpath>
-#    availableram <ramsize in bytes>
 #
 #    ex:
 #        host_port solrhost:8080 
 #        qpshandler_select /select
-#        availableram 3221225472
 #
 # Install plugins:
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_requesttimes_select
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_indexsize
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_memory
 #
 
 
@@ -146,6 +146,18 @@ class SolrCoreMBean:
                 data[key] = el
             else:
                 key = el
+        self._fetchSystem()
+
+    def _fetchSystem(self):
+        uri = "/solr/%s/admin/system?stats=true&wt=json" % self.core
+        conn = httplib.HTTPConnection(self.host)
+        conn.request("GET", uri)
+        res = conn.getresponse()
+        data = res.read()
+        if res.status != 200:
+            raise CheckException("System fetch failed: %s\n%s" %( str(res.status), res.read()))
+        self.data['system'] = json.loads(data)
+
 
     def _readInt(self, path):
         return self._read(path, int)
@@ -195,6 +207,13 @@ class SolrCoreMBean:
 
     def queryresultcache(self):
         return self._readCache('queryResultCache')
+
+    def memory(self):
+        data = self._read(['system', 'jvm', 'memory', 'raw'])
+        del data['used%']
+        for k in data.keys():
+            data[k] = int(data[k])
+        return data
 
 #############################################################################
 # Graph Templates
@@ -261,7 +280,6 @@ s75thpcrequesttime_{core}.graph yes
 s99thpcrequesttime_{core}.label {core} 99th perc
 s99thpcrequesttime_{core}.type GAUGE
 s99thpcrequesttime_{core}.graph yes
-
 """
 
 NUMDOCS_GRAPH_TPL = """graph_title Solr Docs %s
@@ -269,17 +287,31 @@ graph_vlabel docs
 docs.label Docs
 graph_category solr"""
 
-INDEXSIZE_GRAPH_TPL = """graph_args --base 1024 -l 0 --upper-limit {availableram}
+INDEXSIZE_GRAPH_TPL = """graph_args --base 1024 -l 0 
 graph_vlabel Bytes
 graph_title Index Size
 graph_category solr
-graph_info Solr Index Memory Usage.
+graph_info Solr Index Size.
 graph_order {cores}
 {cores_config}
+xmx.label Xmx
+xmx.colour ff0000
 """
 
 INDEXSIZECORE_GRAPH_TPL = """{core}.label {core}
 {core}.draw STACK""" 
+
+MEMORYUSAGE_GRAPH_TPL = """graph_args --base 1024 -l 0 --upper-limit {availableram}
+graph_vlabel Bytes
+graph_title Solr memory usage
+graph_category solr
+graph_info Solr Memory Usage.
+used.label Used
+max.label Max
+max.colour ff0000
+"""
+#MEMORYUSAGE_CORE_GRAPH_TPL = """{core}.label {core}
+#{core}.draw STACK""" 
 
 #############################################################################
 # Graph managment
@@ -371,15 +403,31 @@ class SolrMuninGraph:
 
     def indexsizeConfig(self):
         cores = self._getCores()
-        availableram = os.environ.get('availableram', 16868532224)
         graph = [ INDEXSIZECORE_GRAPH_TPL.format(core=c) for c in cores]
-        return INDEXSIZE_GRAPH_TPL.format(cores=" ".join(cores), cores_config="\n".join(graph), availableram=availableram)
+        return INDEXSIZE_GRAPH_TPL.format(cores=" ".join(cores), cores_config="\n".join(graph))
 
     def indexsize(self):
         results = []
         for c, size in self.solrcoresadmin.indexsize(**self.params['params']).items():
             results.append("%s.value %d" % (c, size))
+        cores = self._getCores()
+        mbean = self._getMBean(cores[0])
+        memory = mbean.memory()
+        results.append('xmx.value %d' % memory['max'])
         return "\n".join(results)
+
+    def memoryConfig(self):
+        cores = self._getCores()
+        mbean = self._getMBean(cores[0])
+        memory = mbean.memory()
+        return MEMORYUSAGE_GRAPH_TPL.format(availableram=memory['max'] * 1.05)
+
+    def memory(self):
+        results = []
+        cores = self._getCores()
+        mbean = self._getMBean(cores[0])
+        memory = mbean.memory()
+        return '\n'.join(['used.value %d' % memory['used'], 'max.value %d' % memory['max']])
 
     def documentcacheConfig(self):
         return self._cacheConfig('documentcache', 'Document Cache')
