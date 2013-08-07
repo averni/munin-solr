@@ -362,7 +362,8 @@ class SolrMuninGraph:
 
     def qpsConfig(self):
         cores = self._getCores()
-        graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='AREA' if pos == 0 else 'STACK') for pos,c in enumerate(cores) ]
+        #graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='AREA' if pos == 0 else 'STACK') for pos,c in enumerate(cores) ]
+        graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='LINESTACK1') for pos,c in enumerate(cores) ]
         return QPSMAIN_GRAPH_TPL.format(
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handler'], 
