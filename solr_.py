@@ -24,17 +24,19 @@
 # Plugins configuration parameters:
 #
 # [solr_*]
-#    host_port <host:port>
-#    qpshandler_<handlerlabel> <handlerpath>
+#    env.host_port <host:port>
+#    env.url <default /solr>
+#    env.qpshandler_<handlerlabel> <handlerpath>
 #
 #    ex:
-#        host_port solrhost:8080 
-#        qpshandler_select /select
+#        env.host_port solrhost:8080 
+#        env.url /solr
+#        env.qpshandler_select /select
 #
 # Install plugins:
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_requesttimes_select
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_core_1_select
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_indexsize
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_memory
 #
