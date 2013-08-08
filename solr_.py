@@ -319,8 +319,6 @@ used.label Used
 max.label Max
 max.colour ff0000
 """
-#MEMORYUSAGE_CORE_GRAPH_TPL = """{core}.label {core}
-#{core}.draw STACK""" 
 
 #############################################################################
 # Graph managment
@@ -372,7 +370,6 @@ class SolrMuninGraph:
 
     def qpsConfig(self):
         cores = self._getCores()
-        #graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='AREA' if pos == 0 else 'STACK') for pos,c in enumerate(cores) ]
         graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='LINESTACK1') for pos,c in enumerate(cores) ]
         return QPSMAIN_GRAPH_TPL.format(
             cores_qps_graphs='\n'.join(graph), 
