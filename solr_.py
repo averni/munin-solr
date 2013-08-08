@@ -88,12 +88,13 @@ class JSONReader:
         return obj
 
 class SolrCoresAdmin:
-    def __init__(self, host):
+    def __init__(self, host, solrurl):
         self.host = host
+        self.solrurl = solrurl
         self.data = None
 
     def fetchcores(self):
-        uri = "/solr/admin/cores?action=STATUS&wt=json"
+        uri = os.path.join(self.solrurl, "admin/cores?action=STATUS&wt=json")
         conn = httplib.HTTPConnection(self.host)
         conn.request("GET", uri)
         res = conn.getresponse()
@@ -122,13 +123,14 @@ class SolrCoresAdmin:
             return ret
 
 class SolrCoreMBean:
-    def __init__(self, host, core):
+    def __init__(self, host, solrurl, core):
         self.host = host
         self.data = None
         self.core = core
+        self.solrurl = solrurl
 
     def _fetch(self):
-        uri = "/solr/%s/admin/mbeans?stats=true&wt=json" % self.core
+        uri = os.path.join(self.solrurl, "%s/admin/mbeans?stats=true&wt=json" % self.core)
         conn = httplib.HTTPConnection(self.host)
         conn.request("GET", uri)
         res = conn.getresponse()
@@ -149,7 +151,7 @@ class SolrCoreMBean:
         self._fetchSystem()
 
     def _fetchSystem(self):
-        uri = "/solr/%s/admin/system?stats=true&wt=json" % self.core
+        uri = os.path.join(self.solrurl, "%s/admin/system?stats=true&wt=json" % self.core)
         conn = httplib.HTTPConnection(self.host)
         conn.request("GET", uri)
         res = conn.getresponse()
@@ -322,13 +324,14 @@ max.colour ff0000
 # Graph managment
 
 class SolrMuninGraph:
-    def __init__(self, hostport, solrmbean):
-        self.solrcoresadmin = SolrCoresAdmin(hostport)
+    def __init__(self, hostport, solrurl, params):
+        self.solrcoresadmin = SolrCoresAdmin(hostport, solrurl)
         self.hostport = hostport
+        self.solrurl = solrurl
         self.params = params
 
     def _getMBean(self, core):
-        return SolrCoreMBean(self.hostport, core)
+        return SolrCoreMBean(self.hostport, self.solrurl, core)
 
     def _cacheConfig(self, cacheType, cacheName):
         return CACHE_GRAPH_TPL.format(core=self.params['core'], cacheType=cacheType, cacheName=cacheName)
@@ -462,7 +465,8 @@ class SolrMuninGraph:
 if __name__ == '__main__':
     params = parse_params()
     SOLR_HOST_PORT = os.environ.get('host_port', 'localhost:8080').replace('http://', '')
-    mb = SolrMuninGraph(SOLR_HOST_PORT, params)
+    SOLR_URL  = os.environ.get('url', '/solr')
+    mb = SolrMuninGraph(SOLR_HOST_PORT, SOLR_URL, params)
     if hasattr(mb, params['op']):
         print getattr(mb,  params['op'])(params['type'])
 

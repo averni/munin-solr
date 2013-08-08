@@ -3,12 +3,12 @@
 
 Munin plugin for monitoring a multicore solr 4.* installation via mbean.
 It calls:
-> http://localhost:8080/solr/admin/cores?action=STATUS&wt=json
+> http://localhost:8080/$url/admin/cores?action=STATUS&wt=json
 
 to retrieve cores and
 
-> http://localhost:8080/solr/corename/admin/mbeans?stats=true&wt=json
-> http://localhost:8080/solr/corename/admin/system?stats=true&wt=json
+> http://localhost:8080/$url/$corename/admin/mbeans?stats=true&wt=json
+> http://localhost:8080/$url/$corename/admin/system?stats=true&wt=json
 
 to read core data and system stats
 
@@ -21,6 +21,7 @@ Add the following lines to the munin-node file, usually found in /etc/munin/plug
 
     [solr_*]
         host_port solrhost:8080 
+        url /solr
         qpshandler_select /select
 
 
@@ -54,4 +55,4 @@ queryresultcache
 ### Credits:
 ===
 
-Developed for www.fashionis.com
+Sponsored by www.fashionis.com
