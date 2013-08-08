@@ -468,6 +468,8 @@ if __name__ == '__main__':
     params = parse_params()
     SOLR_HOST_PORT = os.environ.get('host_port', 'localhost:8080').replace('http://', '')
     SOLR_URL  = os.environ.get('url', '/solr')
+    if SOLR_URL[0] != '/':
+        SOLR_URL = '/' + SOLR_URL 
     mb = SolrMuninGraph(SOLR_HOST_PORT, SOLR_URL, params)
     if hasattr(mb, params['op']):
         print getattr(mb,  params['op'])(params['type'])
