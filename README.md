@@ -51,6 +51,10 @@ fieldvaluecache
 filtercache  
 queryresultcache  
 
+### Requirements:
+===
+Python >= 2.6
+
 
 ### Credits:
 ===
