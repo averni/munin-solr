@@ -21,24 +21,29 @@
 # DEALINGS IN THE SOFTWARE.
 #
 # Solr 4.* munin graph plugin
-# Plugins configuration parameters:
+# Project repo: https://github.com/averni/munin-solr
+#
+# Plugin configuration parameters:
 #
 # [solr_*]
 #    env.host_port <host:port>
 #    env.url <default /solr>
 #    env.qpshandler_<handlerlabel> <handlerpath>
 #
-#    ex:
-#        env.host_port solrhost:8080 
-#        env.url /solr
-#        env.qpshandler_select /select
+# Example:
+# [solr_*]
+#    env.host_port solrhost:8080 
+#    env.url /solr
+#    env.qpshandler_select /select
 #
 # Install plugins:
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_requesttimes_select
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_core_1_select
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps
+#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_indexsize
 #    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_memory
+#
 #
 
 
@@ -342,7 +347,8 @@ class SolrMuninGraph:
         if isinstance(value, int):
             return "%d"
         if isinstance(value, float):
-            return "%.8f"
+            return "%.6f"
+        return "%s"
 
     def _cacheFetch(self, cacheType, fields = None):
         fields = fields or ['size', 'lookups', 'hits', 'inserts', 'evictions']
