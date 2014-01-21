@@ -80,93 +80,84 @@ def parse_params():
 class CheckException(Exception):
     pass
 
-class JSONReader:
-    @classmethod
-    def readValue(cls, struct, path, convert = None):
-        if not path[0] in struct:
-            return -1
-        obj = struct[path[0]]
-        if not obj:
-            return -1
-        for k in path[1:]:
-            obj = obj[k]
-        if convert:
-            return convert(obj)
-        return obj
+def readPath(struct, path, convert=None, default=-1):
+    if not path[0] in struct or not struct[path[0]]:
+        return default 
+    obj = struct[path[0]]
+    for k in path[1:]:
+        obj = obj.get(k)
+        if obj is None:
+            obj = default
+            break
+    if convert:
+        obj = convert(obj)
+    return obj
+
+def HTTPGetJson(host, url):
+    conn = httplib.HTTPConnection(host)
+    conn.request("GET", url)
+    res = conn.getresponse()
+    if res.status != 200:
+        raise CheckException("%s %s fetch failed: %s\n%s" %( host, url, str(res.status), res.read()))
+    try:
+        return json.loads(res.read())
+    except ValueError, ex:
+        raise CheckException("%s %s response parsing failed: %s\n%s" %( host, url, ex, res.read()))
+
+URIS = {
+    'CORES': "admin/cores?action=STATUS&wt=json",
+    'CORE_MBEAN': "admin/mbeans?stats=true&wt=json",
+    'CORE_SYSTEM':"admin/system?stats=true&wt=json"
+} 
 
 class SolrCoresAdmin:
     def __init__(self, host, solrurl):
         self.host = host
         self.solrurl = solrurl
-        self.data = None
+        self.data = self._fetchCores()
 
-    def fetchcores(self):
-        uri = os.path.join(self.solrurl, "admin/cores?action=STATUS&wt=json")
-        conn = httplib.HTTPConnection(self.host)
-        conn.request("GET", uri)
-        res = conn.getresponse()
-        data = res.read()
-        if res.status != 200:
-            raise CheckException("Cores status fetch failed: %s\n%s" %( str(res.status), res.read()))
-        self.data = json.loads(data)
+    def _fetchCores(self):
+        uri = os.path.join(self.solrurl, URIS['CORES'])
+        return HTTPGetJson(self.host, uri)
 
     def getCores(self):
-        if not self.data:
-            self.fetchcores()
-        cores = JSONReader.readValue(self.data, ['status'])
+        cores = readPath(self.data, ['status'])
         return cores.keys()
 
     def indexsize(self, core = None):
-        if not self.data:
-            self.fetchcores()
+        result = {}
         if core:
-            return {
-                core: JSONReader.readValue(self.data, ['status', core, 'index', 'sizeInBytes'])
-            }
+            result[core] =  readPath(self.data, ['status', core, 'index', 'sizeInBytes'])
         else:
-            ret = {}
             for core in self.getCores():
-                ret[core] = JSONReader.readValue(self.data, ['status', core, 'index', 'sizeInBytes'])
-            return ret
+                result[core] = readPath(self.data, ['status', core, 'index', 'sizeInBytes'])
+        return result
 
 class SolrCoreMBean:
     def __init__(self, host, solrurl, core):
         self.host = host
-        self.data = None
         self.core = core
         self.solrurl = solrurl
-
-    def _fetch(self):
-        uri = os.path.join(self.solrurl, "%s/admin/mbeans?stats=true&wt=json" % self.core)
-        conn = httplib.HTTPConnection(self.host)
-        conn.request("GET", uri)
-        res = conn.getresponse()
-        data = res.read()
-        if res.status != 200:
-            raise CheckException("MBean fetch failed: %s\n%s" %( str(res.status), res.read()))
-        raw_data = json.loads(data)
-        data = {}
         self.data = {
-            'solr-mbeans': data
+            'solr-mbeans': self._fetchMBeans(),
+            'system': self._fetchSystem()
         }
+
+    def _fetchMBeans(self):
+        uri = os.path.join(self.solrurl, self.core, URIS['CORE_MBEAN'])
+        raw_data = HTTPGetJson(self.host, uri)
+        data = {}
         key = None
         for pos, el in enumerate(raw_data['solr-mbeans']):
             if pos % 2 == 1:
                 data[key] = el
             else:
                 key = el
-        self._fetchSystem()
+        return data
 
     def _fetchSystem(self):
-        uri = os.path.join(self.solrurl, "%s/admin/system?stats=true&wt=json" % self.core)
-        conn = httplib.HTTPConnection(self.host)
-        conn.request("GET", uri)
-        res = conn.getresponse()
-        data = res.read()
-        if res.status != 200:
-            raise CheckException("System fetch failed: %s\n%s" %( str(res.status), res.read()))
-        self.data['system'] = json.loads(data)
-
+        uri = os.path.join(self.solrurl, self.core, URIS['CORE_SYSTEM'])
+        return HTTPGetJson(self.host, uri)
 
     def _readInt(self, path):
         return self._read(path, int)
@@ -175,9 +166,7 @@ class SolrCoreMBean:
         return self._read(path, float)
 
     def _read(self, path, convert = None):
-        if self.data is None:
-            self._fetch()
-        return JSONReader.readValue(self.data, path, convert)
+        return readPath(self.data, path, convert)
 
     def _readCache(self, cache):
         result = {}
@@ -259,7 +248,7 @@ graph_args -l 0
 graph_category solr
 graph_vlabel Size
 size.label Size
-size.draw LINE2
+size.draw AREA
 evictions.label Evictions
 evictions.draw LINE2
 
@@ -280,7 +269,7 @@ qps_{core}.type DERIVE
 qps_{core}.min 0
 qps_{core}.graph yes"""
 
-REQUESTTIMES_GRAPH_TPL = """multigraph {core}_requesttimes
+REQUESTTIMES_GRAPH_TPL = """multigraph solr_requesttimes_{core}_{handler}
 graph_title Solr {core} {handler} Time per request
 graph_args -l 0
 graph_vlabel millis
@@ -412,7 +401,7 @@ class SolrMuninGraph:
         results = []
         for c in cores:
             mbean = self._getMBean(c)
-            results.append('multigraph {core}_requesttimes'.format(core=c))
+            results.append('multigraph solr_requesttimes_{core}_{handler}'.format(core=c, handler=self.params['params']['handler']))
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
                 results.append('s%s_%s.value %.5f' % (k.lower(), c, time))
         return '\n'.join(results)
