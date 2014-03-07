@@ -30,7 +30,7 @@ Example numdoc check on core_1:
     ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_numdocs_core_1
 
 
-Before installing the plugins, qps and requesttimes check requires aliases to be defined in the munin-node file as from the example on top.
+Before installing the plugins, qps and requesttimes requires aliases to be defined in the munin-node file as from the example on top.
 
     env.solr4_qpshandler_select /select
 
@@ -44,9 +44,10 @@ Example qps using core name:
 
 Core Alias:
 
-Dots has a special meaning when used in munin plugin names. If the core you need to monitor have "." inside you must define a dots free alias:
+Dots has a special meaning when used in munin plugin names. If the core you need to monitor have "." inside you must define a dot-free alias:
 
     env.solr4_coresalias core_1_it:core_1.it core_1_en:core_1.en
+
 
 
     ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_it_select
