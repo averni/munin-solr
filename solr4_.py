@@ -57,7 +57,12 @@ import base64
 def load_alias(cores_alias):
     if not cores_alias:
         return {}
-    return dict([core_alias.split(':') for core_alias in cores_alias.split(' ')])
+    alias = [core_alias.split(':') for core_alias in cores_alias.split(' ')]
+    dict_alias = dict(alias)
+    dict_alias.update([(a[1], a[0]) for a in alias])
+    return dict_alias
+
+CORE_ALIAS =  load_alias(os.environ.get('solr4_cores_alias'))
 
 def parse_params():
     plugname = os.path.basename(sys.argv[0]).split('_', 2)[1:]
@@ -79,11 +84,10 @@ def parse_params():
             params['core'] = data[0]
     elif plugname[0] ==  'indexsize':
         params['params']['core'] = params['core']
-    cores_alias = load_alias(os.environ.get('solr4_cores_alias'))
-    if params['core'] in cores_alias:
-        params['core'] = cores_alias[params['core']]
+    if params['core'] in CORE_ALIAS:
+        params['core'] = CORE_ALIAS[params['core']]
         if 'core' in params['params']:
-            params['params']['core'] = cores_alias[params['params']['core']]
+            params['params']['core'] = CORE_ALIAS[params['params']['core']]
     return params
 
 #############################################################################
@@ -344,7 +348,8 @@ class SolrMuninGraph:
         return SolrCoreMBean(self.hostport, self.solrurl, core)
 
     def _cacheConfig(self, cacheType, cacheName):
-        return CACHE_GRAPH_TPL.format(core=self.params['core'], cacheType=cacheType, cacheName=cacheName)
+        core = CORE_ALIAS.get(self.params['core'], self.params['core'])
+        return CACHE_GRAPH_TPL.format(core=core, cacheType=cacheType, cacheName=cacheName)
 
     def _format4Value(self, value):
         if isinstance(value, basestring):
@@ -362,11 +367,12 @@ class SolrMuninGraph:
         results = []
         solrmbean = self._getMBean(self.params['core'])
         data = getattr(solrmbean, cacheType)()
-        results.append('multigraph solr_{core}_{cacheType}_hit_rates'.format(core=self.params['core'], cacheType=cacheType))
+        core = CORE_ALIAS.get(self.params['core'], self.params['core'])
+        results.append('multigraph solr_{core}_{cacheType}_hit_rates'.format(core=core, cacheType=cacheType))
         for label in hits_fields:
             vformat = self._format4Value(data[label])
             results.append(("%s.value " + vformat) % (label, data[label]))
-        results.append('multigraph solr_{core}_{cacheType}_size'.format(core=self.params['core'], cacheType=cacheType))
+        results.append('multigraph solr_{core}_{cacheType}_size'.format(core=core, cacheType=cacheType))
         for label in size_fields:
             results.append("%s.value %d" % (label, data[label]))
         return "\n".join(results)
@@ -390,11 +396,12 @@ class SolrMuninGraph:
 
     def qpsConfig(self):
         cores = self._getCores()
+        cores = [CORE_ALIAS.get(c, c) for c in cores]
         graph = [QPSCORE_GRAPH_TPL.format(core=c, handler=self.params['params']['handler'], gtype='LINESTACK1') for pos,c in enumerate(cores) ]
         return QPSMAIN_GRAPH_TPL.format(
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handler'], 
-            core=self.params['core'], 
+            core = CORE_ALIAS.get(self.params['core'], self.params['core']), 
             cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*(len(cores)-1))), 
             gorder=','.join(cores)
         )
@@ -404,11 +411,12 @@ class SolrMuninGraph:
         cores = self._getCores()
         for c in cores:
             mbean = self._getMBean(c)
+            c = CORE_ALIAS.get(c, c)
             results.append('qps_%s_%s.value %d' % (c, self.params['params']['handler'], mbean.requestcount(self.params['params']['handler'])))
         return '\n'.join(results)
 
     def requesttimesConfig(self):
-        cores = self._getCores()
+        cores = [CORE_ALIAS.get(c, c) for c in self._getCores()]
         graphs = [REQUESTTIMES_GRAPH_TPL.format(core=c, handler=self.params['params']['handler']) for c in cores ]
         return '\n'.join(graphs)
 
@@ -417,26 +425,28 @@ class SolrMuninGraph:
         results = []
         for c in cores:
             mbean = self._getMBean(c)
+            c = CORE_ALIAS.get(c, c)
             results.append('multigraph solr_requesttimes_{core}_{handler}'.format(core=c, handler=self.params['params']['handler']))
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
                 results.append('s%s_%s.value %.5f' % (k.lower(), c, time))
         return '\n'.join(results)
 
     def numdocsConfig(self):
-        return NUMDOCS_GRAPH_TPL % self.params['core']
+        return NUMDOCS_GRAPH_TPL % CORE_ALIAS.get(self.params['core'], self.params['core'])
 
     def numdocs(self):
         mbean = self._getMBean(self.params['core'])
         return 'docs.value %d' % mbean.numdocs(**self.params['params'])
 
     def indexsizeConfig(self):
-        cores = self._getCores()
+        cores = [CORE_ALIAS.get(c, c) for c in self._getCores()]
         graph = [ INDEXSIZECORE_GRAPH_TPL.format(core=c) for c in cores]
         return INDEXSIZE_GRAPH_TPL.format(cores=" ".join(cores), cores_config="\n".join(graph))
 
     def indexsize(self):
         results = []
         for c, size in self.solrcoresadmin.indexsize(**self.params['params']).items():
+            c = CORE_ALIAS.get(c, c)
             results.append("%s.value %d" % (c, size))
         cores = self._getCores()
         mbean = self._getMBean(cores[0])
