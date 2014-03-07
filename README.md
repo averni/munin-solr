@@ -48,7 +48,7 @@ Dots has a special meaning when used in munin plugin names. If the core you need
 
     env.solr4_coresalias core_1_it:core_1.it core_1_en:core_1.en
 
-
+Example check:
 
     ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_it_select
 
