@@ -19,22 +19,22 @@ Copy the plugin file to your munin plugins folder (ex. /usr/share/munin/plugins)
 
 Add the following lines to the munin-node file, usually found in /etc/munin/plugin-conf.d/munin-node, adding one qpshandler for each handler you need to monitor:
 
-    [solr_*]
-        env.solr_host_port solrhost:8080 
-        env.solr_url /solr
-        env.solr_qpshandler_select /select
+    [solr4_*]
+        env.solr4_host_port solrhost:8080 
+        env.solr4_url /solr
+        env.solr4_qpshandler_select /select
 
 
 To enable numdoc check on core_1:
 
-    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_numdocs_core_1
 
 
 To enable qps and requesttimes check on a handler you have to define an alias for it in the munin-node file as from the example before installing the plugins
 
-    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
-    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_select
-    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_requesttimes_select
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_select
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_select
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_requesttimes_select
 
 
 
