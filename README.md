@@ -25,7 +25,7 @@ Add the following lines to the munin-node file, usually found in /etc/munin/plug
         env.solr4_qpshandler_select /select
 
 
-To enable numdoc check on core_1:
+Example numdoc check on core_1:
 
     ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_numdocs_core_1
 
@@ -50,6 +50,16 @@ documentcache
 fieldvaluecache  
 filtercache  
 queryresultcache  
+
+### Supported parameters:
+===
+
+solr4_host_port host:port
+solr4_cores_alias checkalias:realcorename
+solr4_url /path
+solr4_auth user:passwd
+solr4_qpshandler_$handlername /handler
+
 
 ### Requirements:
 ===
