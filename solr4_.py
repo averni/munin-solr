@@ -25,24 +25,24 @@
 #
 # Plugin configuration parameters:
 #
-# [solr_*]
-#    env.host_port <host:port>
-#    env.url <default /solr>
-#    env.qpshandler_<handlerlabel> <handlerpath>
+# [solr4_*]
+#    env.solr4_host_port <host:port>
+#    env.solr4_url <default /solr>
+#    env.solr4_qpshandler_<handlerlabel> <handlerpath>
 #
 # Example:
-# [solr_*]
-#    env.host_port solrhost:8080 
-#    env.url /solr
-#    env.qpshandler_select /select
+# [solr4_*]
+#    env.solr4_host_port solrhost:8080 
+#    env.solr4_url /solr
+#    env.solr4_qpshandler_select /select
 #
 # Install plugins:
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_numdocs_core_1
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_requesttimes_select
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_qps_core_1_select
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_indexsize
-#    ln -s /usr/share/munin/plugins/solr_.py /etc/munin/plugins/solr_memory
+#    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_numdocs_core_1
+#    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_requesttimes_select
+#    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps
+#    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_select
+#    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_indexsize
+#    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_memory
 #
 #
 
@@ -51,6 +51,13 @@ import sys
 import os
 import httplib
 import json
+import base64
+
+# core alias support, added to handle core names with dot
+def load_alias(cores_alias):
+    if not cores_alias:
+        return {}
+    return dict([core_alias.split(':') for core_alias in cores_alias.split(' ')])
 
 def parse_params():
     plugname = os.path.basename(sys.argv[0]).split('_', 2)[1:]
@@ -64,7 +71,7 @@ def parse_params():
         data = params['core'].rsplit('_', 1)
         handler = data.pop()
         params['params'] = {
-                'handler': os.environ.get('qpshandler_%s' % handler, 'standard')
+                'handler': os.environ.get('solr4_qpshandler_%s' % handler, 'standard')
         }
         if not data:
             params['core'] = ''
@@ -72,6 +79,11 @@ def parse_params():
             params['core'] = data[0]
     elif plugname[0] ==  'indexsize':
         params['params']['core'] = params['core']
+    cores_alias = load_alias(os.environ.get('solr4_cores_alias'))
+    if params['core'] in cores_alias:
+        params['core'] = cores_alias[params['core']]
+        if 'core' in params['params']:
+            params['params']['core'] = cores_alias[params['params']['core']]
     return params
 
 #############################################################################
@@ -95,7 +107,11 @@ def readPath(struct, path, convert=None, default=-1):
 
 def HTTPGetJson(host, url):
     conn = httplib.HTTPConnection(host)
-    conn.request("GET", url)
+    headers = {}
+    SOLR_AUTH  = os.environ.get('solr4_auth')
+    if SOLR_AUTH:
+        headers["Authorization"] = "Basic %s" % base64.encodestring(SOLR_AUTH).replace('\n', '')
+    conn.request("GET", url, headers=headers)
     res = conn.getresponse()
     if res.status != 200:
         raise CheckException("%s %s fetch failed: %s\n%s" %( host, url, str(res.status), res.read()))
@@ -212,7 +228,8 @@ class SolrCoreMBean:
 
     def memory(self):
         data = self._read(['system', 'jvm', 'memory', 'raw'])
-        del data['used%']
+        if 'used%' in data:
+            del data['used%']
         for k in data.keys():
             data[k] = int(data[k])
         return data
@@ -249,9 +266,8 @@ graph_category solr
 graph_vlabel Size
 size.label Size
 size.draw AREA
-evictions.label Evictions
+evictions.label Evictions/s
 evictions.draw LINE2
-
 """
 
 QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second
@@ -263,11 +279,11 @@ graph_period second
 graph_order {gorder}
 {cores_qps_graphs}"""
 
-QPSCORE_GRAPH_TPL = """qps_{core}.label {core} Request per second
-qps_{core}.draw {gtype}
-qps_{core}.type DERIVE
-qps_{core}.min 0
-qps_{core}.graph yes"""
+QPSCORE_GRAPH_TPL = """qps_{core}_{handler}.label {core} Request per second
+qps_{core}_{handler}.draw {gtype}
+qps_{core}_{handler}.type DERIVE
+qps_{core}_{handler}.min 0
+qps_{core}_{handler}.graph yes"""
 
 REQUESTTIMES_GRAPH_TPL = """multigraph solr_requesttimes_{core}_{handler}
 graph_title Solr {core} {handler} Time per request
@@ -374,7 +390,7 @@ class SolrMuninGraph:
 
     def qpsConfig(self):
         cores = self._getCores()
-        graph = [QPSCORE_GRAPH_TPL.format(core=c, gtype='LINESTACK1') for pos,c in enumerate(cores) ]
+        graph = [QPSCORE_GRAPH_TPL.format(core=c, handler=self.params['params']['handler'], gtype='LINESTACK1') for pos,c in enumerate(cores) ]
         return QPSMAIN_GRAPH_TPL.format(
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handler'], 
@@ -388,7 +404,7 @@ class SolrMuninGraph:
         cores = self._getCores()
         for c in cores:
             mbean = self._getMBean(c)
-            results.append('qps_%s.value %d' % (c, mbean.requestcount(self.params['params']['handler'])))
+            results.append('qps_%s_%s.value %d' % (c, self.params['params']['handler'], mbean.requestcount(self.params['params']['handler'])))
         return '\n'.join(results)
 
     def requesttimesConfig(self):
@@ -467,8 +483,8 @@ class SolrMuninGraph:
 
 if __name__ == '__main__':
     params = parse_params()
-    SOLR_HOST_PORT = os.environ.get('host_port', 'localhost:8080').replace('http://', '')
-    SOLR_URL  = os.environ.get('url', '/solr')
+    SOLR_HOST_PORT = os.environ.get('solr4_host_port', 'localhost:8080').replace('http://', '')
+    SOLR_URL  = os.environ.get('solr4_url', '/solr')
     if SOLR_URL[0] != '/':
         SOLR_URL = '/' + SOLR_URL 
     mb = SolrMuninGraph(SOLR_HOST_PORT, SOLR_URL, params)
