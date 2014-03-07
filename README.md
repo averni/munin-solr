@@ -30,12 +30,26 @@ Example numdoc check on core_1:
     ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_numdocs_core_1
 
 
-To enable qps and requesttimes check on a handler you have to define an alias for it in the munin-node file as from the example before installing the plugins
+Before installing the plugins, qps and requesttimes check requires aliases to be defined in the munin-node file as from the example on top.
+
+    env.solr4_qpshandler_select /select
+
+Example qps using cores autodiscovery:
+
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_select
+
+Example qps using core name:
 
     ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_select
-    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_select
-    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_requesttimes_select
 
+Core Alias:
+
+Dots has a special meaning when used in munin plugin names. If the core you need to monitor have "." inside you must define a dots free alias:
+
+    env.solr4_coresalias core_1_it:core_1.it core_1_en:core_1.en
+
+
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_it_select
 
 
 ### Checks available:
