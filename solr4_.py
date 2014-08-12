@@ -29,6 +29,7 @@
 #    env.solr4_host_port <host:port>
 #    env.solr4_url <default /solr>
 #    env.solr4_qpshandler_<handlerlabel> <handlerpath>
+#    env.solr4_qpshandler_<handlerlabel>_usealias <1|0 default 0>
 #
 # Example:
 # [solr4_*]
@@ -213,6 +214,14 @@ class SolrCoreMBean:
         path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'requests']
         return self._readInt(path)
 
+    def requesttimeouts(self, handler):
+        path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'timeouts']
+        return self._readInt(path)
+
+    def requesterrors(self, handler):
+        path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'errors']
+        return self._readInt(path)
+
     def qps(self, handler):
         path = ['solr-mbeans', 'QUERYHANDLER', handler, 'stats', 'avgRequestsPerSecond']
         return self._readFloat(path)
@@ -296,8 +305,21 @@ graph_order {gorder}
 QPSCORE_GRAPH_TPL = """qps_{core}_{handler}.label {core} Request per second
 qps_{core}_{handler}.draw {gtype}
 qps_{core}_{handler}.type DERIVE
+qps_{core}_{handler}.colour 008000
 qps_{core}_{handler}.min 0
-qps_{core}_{handler}.graph yes"""
+qps_{core}_{handler}.graph yes
+timeouts_{core}_{handler}.label {core} Timouts per second
+timeouts_{core}_{handler}.draw {gtype}
+timeouts_{core}_{handler}.type DERIVE
+timeouts_{core}_{handler}.colour FFA500
+timeouts_{core}_{handler}.min 0
+timeouts_{core}_{handler}.graph yes
+errors_{core}_{handler}.label {core} Errors per second
+errors_{core}_{handler}.draw {gtype}
+errors_{core}_{handler}.type DERIVE
+errors_{core}_{handler}.colour FF0000
+errors_{core}_{handler}.min 0
+errors_{core}_{handler}.graph yes"""
 
 REQUESTTIMES_GRAPH_TPL = """multigraph solr_requesttimes_{core}_{handler}
 graph_title Solr {core} {handler} Time per request
@@ -422,6 +444,8 @@ class SolrMuninGraph:
             mbean = self._getMBean(c)
             c = core_alias(c)
             results.append('qps_%s_%s.value %d' % (c, self.params['params']['handleralias'], mbean.requestcount(self.params['params']['handler'])))
+            results.append('timeouts_%s_%s.value %d' % (c, self.params['params']['handleralias'], mbean.requesttimeouts(self.params['params']['handler'])))
+            results.append('errors_%s_%s.value %d' % (c, self.params['params']['handleralias'], mbean.requesterrors(self.params['params']['handler'])))
         return '\n'.join(results)
 
     def requesttimesConfig(self):

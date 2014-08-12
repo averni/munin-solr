@@ -74,6 +74,7 @@ solr4_cores_alias checkalias:realcorename
 solr4_url /path  
 solr4_auth user:passwd  
 solr4_qpshandler_$handlername /handler  
+solr4_qpshandler_$handlername_usealias 1
 
 
 ### Requirements:
