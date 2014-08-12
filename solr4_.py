@@ -62,7 +62,20 @@ def load_alias(cores_alias):
     dict_alias.update([(a[1], a[0]) for a in alias])
     return dict_alias
 
+URIS = {
+    'CORES': "admin/cores?action=STATUS&wt=json",
+    'CORE_MBEAN': "admin/mbeans?stats=true&wt=json",
+    'CORE_SYSTEM':"admin/system?stats=true&wt=json"
+} 
+
 CORE_ALIAS =  load_alias(os.environ.get('solr4_cores_alias'))
+def core_alias(core_alias):
+    if isinstance(core_alias, list):
+        return [CORE_ALIAS.get(c, c) for c in core_alias]
+    return CORE_ALIAS.get(core_alias, core_alias)
+
+def parse_bool(text):
+    return text and text[0].lower() not in ['f', '0']
 
 def parse_params():
     plugname = os.path.basename(sys.argv[0]).split('_', 2)[1:]
@@ -75,8 +88,11 @@ def parse_params():
     if plugname[0] in[ 'qps', 'requesttimes']:
         data = params['core'].rsplit('_', 1)
         handler = data.pop()
+        usealias = parse_bool(os.environ.get('solr4_qpshandler_%s_usealias' % handler, 'f')),
+        handlername = os.environ.get('solr4_qpshandler_%s' % handler, 'standard')
         params['params'] = {
-                'handler': os.environ.get('solr4_qpshandler_%s' % handler, 'standard')
+                'handler': handlername,
+                'handleralias': handler if usealias else handlername
         }
         if not data:
             params['core'] = ''
@@ -123,12 +139,6 @@ def HTTPGetJson(host, url):
         return json.loads(res.read())
     except ValueError, ex:
         raise CheckException("%s %s response parsing failed: %s\n%s" %( host, url, ex, res.read()))
-
-URIS = {
-    'CORES': "admin/cores?action=STATUS&wt=json",
-    'CORE_MBEAN': "admin/mbeans?stats=true&wt=json",
-    'CORE_SYSTEM':"admin/system?stats=true&wt=json"
-} 
 
 class SolrCoresAdmin:
     def __init__(self, host, solrurl):
@@ -348,7 +358,7 @@ class SolrMuninGraph:
         return SolrCoreMBean(self.hostport, self.solrurl, core)
 
     def _cacheConfig(self, cacheType, cacheName):
-        core = CORE_ALIAS.get(self.params['core'], self.params['core'])
+        core = core_alias(self.params['core'])
         return CACHE_GRAPH_TPL.format(core=core, cacheType=cacheType, cacheName=cacheName)
 
     def _format4Value(self, value):
@@ -367,7 +377,7 @@ class SolrMuninGraph:
         results = []
         solrmbean = self._getMBean(self.params['core'])
         data = getattr(solrmbean, cacheType)()
-        core = CORE_ALIAS.get(self.params['core'], self.params['core'])
+        core = core_alias(self.params['core'])
         results.append('multigraph solr_{core}_{cacheType}_hit_rates'.format(core=core, cacheType=cacheType))
         for label in hits_fields:
             vformat = self._format4Value(data[label])
@@ -395,13 +405,12 @@ class SolrMuninGraph:
         return cores
 
     def qpsConfig(self):
-        cores = self._getCores()
-        cores = [CORE_ALIAS.get(c, c) for c in cores]
-        graph = [QPSCORE_GRAPH_TPL.format(core=c, handler=self.params['params']['handler'], gtype='LINESTACK1') for pos,c in enumerate(cores) ]
+        cores = core_alias(self._getCores())
+        graph = [QPSCORE_GRAPH_TPL.format(core=c, handler=self.params['params']['handleralias'], gtype='LINESTACK1') for pos,c in enumerate(cores) ]
         return QPSMAIN_GRAPH_TPL.format(
             cores_qps_graphs='\n'.join(graph), 
-            handler=self.params['params']['handler'], 
-            core = CORE_ALIAS.get(self.params['core'], self.params['core']), 
+            handler=self.params['params']['handleralias'], 
+            core = core_alias(self.params['core']), 
             cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*(len(cores)-1))), 
             gorder=','.join(cores)
         )
@@ -411,13 +420,12 @@ class SolrMuninGraph:
         cores = self._getCores()
         for c in cores:
             mbean = self._getMBean(c)
-            c = CORE_ALIAS.get(c, c)
-            results.append('qps_%s_%s.value %d' % (c, self.params['params']['handler'], mbean.requestcount(self.params['params']['handler'])))
+            c = core_alias(c)
+            results.append('qps_%s_%s.value %d' % (c, self.params['params']['handleralias'], mbean.requestcount(self.params['params']['handler'])))
         return '\n'.join(results)
 
     def requesttimesConfig(self):
-        cores = [CORE_ALIAS.get(c, c) for c in self._getCores()]
-        graphs = [REQUESTTIMES_GRAPH_TPL.format(core=c, handler=self.params['params']['handler']) for c in cores ]
+        graphs = [REQUESTTIMES_GRAPH_TPL.format(core=c, handler=self.params['params']['handleralias']) for c in core_alias(self._getCores()) ]
         return '\n'.join(graphs)
 
     def requesttimes(self):
@@ -425,29 +433,28 @@ class SolrMuninGraph:
         results = []
         for c in cores:
             mbean = self._getMBean(c)
-            c = CORE_ALIAS.get(c, c)
-            results.append('multigraph solr_requesttimes_{core}_{handler}'.format(core=c, handler=self.params['params']['handler']))
+            c = core_alias(c)
+            results.append('multigraph solr_requesttimes_{core}_{handler}'.format(core=c, handler=self.params['params']['handleralias']))
             for k, time in mbean.requesttimes(self.params['params']['handler']).items():
                 results.append('s%s_%s.value %.5f' % (k.lower(), c, time))
         return '\n'.join(results)
 
     def numdocsConfig(self):
-        return NUMDOCS_GRAPH_TPL % CORE_ALIAS.get(self.params['core'], self.params['core'])
+        return NUMDOCS_GRAPH_TPL % core_alias(self.params['core'])
 
     def numdocs(self):
         mbean = self._getMBean(self.params['core'])
         return 'docs.value %d' % mbean.numdocs(**self.params['params'])
 
     def indexsizeConfig(self):
-        cores = [CORE_ALIAS.get(c, c) for c in self._getCores()]
+        cores = core_alias(self._getCores())
         graph = [ INDEXSIZECORE_GRAPH_TPL.format(core=c) for c in cores]
         return INDEXSIZE_GRAPH_TPL.format(cores=" ".join(cores), cores_config="\n".join(graph))
 
     def indexsize(self):
         results = []
         for c, size in self.solrcoresadmin.indexsize(**self.params['params']).items():
-            c = CORE_ALIAS.get(c, c)
-            results.append("%s.value %d" % (c, size))
+            results.append("%s.value %d" % (core_alias(c), size))
         cores = self._getCores()
         mbean = self._getMBean(cores[0])
         memory = mbean.memory()
