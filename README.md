@@ -27,7 +27,7 @@ Add the following lines to the munin-node file, usually found in /etc/munin/plug
 
 Example numdoc check on core_1:
 
-    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_numdocs_core_1
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr4_numdocs_core_1
 
 
 Before installing the plugins, qps and requesttimes requires aliases to be defined in the munin-node file as from the example on top.
@@ -36,11 +36,11 @@ Before installing the plugins, qps and requesttimes requires aliases to be defin
 
 Example qps using cores autodiscovery:
 
-    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_select
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr4_qps_select
 
 Example qps using core name:
 
-    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_select
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr4_qps_core_1_select
 
 Core Alias:
 
@@ -50,7 +50,7 @@ Dots has a special meaning when used in munin plugin names. If the core you need
 
 Example check:
 
-    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr_qps_core_1_it_select
+    ln -s /usr/share/munin/plugins/solr4_.py /etc/munin/plugins/solr4_qps_core_1_it_select
 
 
 ### Checks available:
