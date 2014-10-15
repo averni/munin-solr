@@ -291,6 +291,7 @@ size.label Size
 size.draw AREA
 evictions.label Evictions/s
 evictions.draw LINE2
+evictions.type DERIVE
 """
 
 QPSMAIN_GRAPH_TPL = """graph_title Solr {core} {handler} Request per second
