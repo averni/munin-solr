@@ -1,4 +1,4 @@
-# Munin-solr (4.*)
+# Munin-solr (4, 5)
 -------------
 
 Munin plugin for monitoring a multicore solr 4 and 5 installation via mbean.
