@@ -64,7 +64,7 @@ def load_alias(cores_alias):
     return dict_alias
 
 URIS = {
-    'CORES': "admin/cores?action=STATUS&wt=json",
+    'CORES': "admin/multicore?action=STATUS&wt=json",
     'CORE_MBEAN': "admin/mbeans?stats=true&wt=json",
     'CORE_SYSTEM':"admin/system?stats=true&wt=json"
 } 
