@@ -97,7 +97,7 @@ def parse_params():
         data = params['core'].rsplit('_', 1)
         handler = data.pop()
         usealias = parse_bool(os.environ.get('solr4_qpshandler_%s_usealias' % handler, 'f')),
-        handlername = os.environ.get('solr4_qpshandler_%s' % handler, 'standard')
+        handlername = os.environ.get('solr4_qpshandler_%s' % handler, "/" + handler)
         params['params'] = {
                 'handler': handlername,
                 'handleralias': handler if usealias else handlername
