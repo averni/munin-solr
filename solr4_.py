@@ -47,10 +47,17 @@
 #
 #
 
-
+from __future__ import (print_function, unicode_literals, division)
 import sys
 import os
-import httplib
+try:
+    import http.client
+    HTTPConnectionClass = http.client.HTTPConnection
+except ImportError:
+    # python2
+    import httplib 
+    HTTPConnectionClass = httplib.HTTPConnection
+
 import json
 import base64
 
@@ -127,7 +134,7 @@ def readPath(struct, path, convert=None, default=-1):
     return obj
 
 def HTTPGetJson(host, url):
-    conn = httplib.HTTPConnection(host)
+    conn = HTTPConnectionClass(host)
     headers = {}
     SOLR_AUTH  = os.environ.get('solr4_auth')
     if SOLR_AUTH:
@@ -138,7 +145,7 @@ def HTTPGetJson(host, url):
         raise CheckException("%s %s fetch failed: %s\n%s" %( host, url, str(res.status), res.read()))
     try:
         return json.loads(res.read())
-    except ValueError, ex:
+    except ValueError as ex:
         raise CheckException("%s %s response parsing failed: %s\n%s" %( host, url, ex, res.read()))
 
 class SolrCoresAdmin:
@@ -153,7 +160,7 @@ class SolrCoresAdmin:
 
     def getCores(self):
         cores = readPath(self.data, ['status'])
-        return cores.keys()
+        return list(cores.keys())
 
     def indexsize(self, core = None):
         result = {}
@@ -253,7 +260,7 @@ class SolrCoreMBean:
         data = self._read(['system', 'jvm', 'memory', 'raw'])
         if 'used%' in data:
             del data['used%']
-        for k in data.keys():
+        for k in list(data.keys()):
             data[k] = int(data[k])
         return data
 
@@ -385,7 +392,7 @@ class SolrMuninGraph:
         return CACHE_GRAPH_TPL.format(core=core, cacheType=cacheType, cacheName=cacheName)
 
     def _format4Value(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             return "%s"
         if isinstance(value, int):
             return "%d"
@@ -434,7 +441,7 @@ class SolrMuninGraph:
             cores_qps_graphs='\n'.join(graph), 
             handler=self.params['params']['handleralias'], 
             core = core_alias(self.params['core']), 
-            cores_qps_cdefs='%s,%s' % (','.join(map(lambda x: 'qps_%s' % x, cores)),','.join(['+']*(len(cores)-1))), 
+            cores_qps_cdefs='%s,%s' % (','.join(['qps_%s' % x for x in cores]),','.join(['+']*(len(cores)-1))), 
             gorder=','.join(cores)
         )
 
@@ -460,7 +467,7 @@ class SolrMuninGraph:
             mbean = self._getMBean(c)
             c = core_alias(c)
             results.append('multigraph solr_requesttimes_{core}_{handler}'.format(core=c, handler=self.params['params']['handleralias']))
-            for k, time in mbean.requesttimes(self.params['params']['handler']).items():
+            for k, time in list(mbean.requesttimes(self.params['params']['handler']).items()):
                 results.append('s%s_%s.value %.5f' % (k.lower(), c, time))
         return '\n'.join(results)
 
@@ -478,7 +485,7 @@ class SolrMuninGraph:
 
     def indexsize(self):
         results = []
-        for c, size in self.solrcoresadmin.indexsize(**self.params['params']).items():
+        for c, size in list(self.solrcoresadmin.indexsize(**self.params['params']).items()):
             results.append("%s.value %d" % (core_alias(c), size))
         cores = self._getCores()
         mbean = self._getMBean(cores[0])
@@ -531,5 +538,5 @@ if __name__ == '__main__':
         SOLR_URL = '/' + SOLR_URL 
     mb = SolrMuninGraph(SOLR_HOST_PORT, SOLR_URL, params)
     if hasattr(mb, params['op']):
-        print getattr(mb,  params['op'])(params['type'])
+        print((getattr(mb,  params['op'])(params['type'])))
 
